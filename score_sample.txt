@@ -1,0 +1,40 @@
+char *s[]={
+  "::[playEX]", // Ravel, Bolero. score by @pado3, free to use
+  "k1@t70l16m'2o5",
+  "c4_c8<b>cdc<ba>c8c<a>c4_c8<b>c<agefg2_gfedefgag4_",
+  "g4_gabagfededc8_c8_cde8'f8'd4g2_g2_g8p8 ",
+  ">d4_d6_c<bab>cdc<b4_b>c<ba>c<baf_f8f'f'f8'a8'>c<abgf8f'f'f8'a8'bgaf",
+  "d8dcd4d8d'd'd8'f8'afged8dcd4_d8dcd8efg2_gfedc8p8p2",
+  ":://"
+};
+
+char *s[]={
+  "::[playEX]", // Elgar, Salut d'amour Op.12. score by @pado3, free to use
+  "k1@t90l8o5~c+~d+~f+~g+",
+  "g4<b>gfedea4a4a4<b>p",
+  "g4<b+>gfedef4f4f3f+",
+  "g4<b>gfede>c4c4c4<",
+  "bag4fec4d4e2p2",
+  ":://"
+};
+
+char *s[]={
+  "::[playEX]", // Rousseau, むすんでひらいて. score by @pado3, free to use
+  "k1@t120l8m6o5",
+  "e4edc4c4d4d4edcpg4gfe4e4dcdec4p4",
+  "e4efg4g4a4a4gfepe4efg4g4a4a4g2p",
+  ":://"
+};
+
+char *s[]={
+  "::[playEX]", // Charumera sound. score by @pado3, free to use
+  "k1@t100l8m5mo4",
+  "cde2_dcpcdedcd2_p1",
+  ":://"
+};
+
+char *s[]={
+  "::[playEX]", // pipo sound. score by @pado3, free to use
+  "@t150N94N82p",
+  ":://"
+};
