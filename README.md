@@ -13,7 +13,8 @@ playMMLt_EEPROMw.ino EEPROMへの書き込みスケッチ<br />
 playMMLt.ino デコードし演奏するスケッチ<br />
 <p></p>
 共通:<br />
-score_sample.txt 楽譜のサンプル（ボレロ、愛の挨拶、むすんでひらいて、チャルメラ、ピポ音）
+score_sample.txt 楽譜のサンプル（ボレロ、愛の挨拶、むすんでひらいて、チャルメラ、ピポ音）<br />
+snd2char.py HP 100/200LXの.sndファイルからplayMMLで使用するデータへ変換するPython3スクリプト
 <p></p>
 MMLフォーマットの内容については、上記playEXのドキュメントをご参照下さい。
 <p></p>
