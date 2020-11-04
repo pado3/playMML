@@ -1,4 +1,5 @@
 #include <EEPROM.h>
+#include <avr/sleep.h>
 #define RAM     0     // 1: use RAM data, 0: use EEPROM data
 #define ILLUMI  1     // 1: Sound illumination ON
 #define ESIZE   512   // EEPROM size in byte
@@ -18,6 +19,7 @@ int decMML(unsigned int);  // MML decoder
 void quit(void);  // terminate to play
 char sr(unsigned int);     // snd data reader with touuper
 void setint(boolean); // interrupt switch
+void powerdown(void); // enter power down mode
 void play(int, unsigned long, unsigned int);  // beep player
 
 // put score here
@@ -121,6 +123,8 @@ void setup()
     // Serial.println(Next);
   }
   // Serial.println(F(" ===== EOF ===== "));
+  // パワーダウンモード移行、ATtiny85はbootloader書き込み(ヒューズビット)でBOD Disableにしておく
+  powerdown();
 }
 
 void loop()
@@ -654,6 +658,16 @@ void setint(boolean sw) {
   } else {
     detachInterrupt(INTN); // Key intrrupt OFF
   }
+}
+
+/* power down mode w/Arduino. You may modify for your lib|PF */
+void powerdown(void) {  // ATtiny85はbootloader書き込み(ヒューズビット)でBOD Disableにしておく
+  // ACSR  = 0x00; // AD比較器停止0x80（使うときは0x00）関係無かった
+  // PRR = 0x00; // 電力削減レジスタまとめてゼロ（初期値通り） 関係無かった
+  // GIMSK = 0x00; // 割り込み不許可0x00, 許可0x60 関係無かった
+  ADCSRA = 0x00; // ADC停止、使うときは0x80（たぶんpinModeで設定） これをしないと330uA
+  set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+  sleep_mode(); // sleep_(enable + cpu + disable), 割り込みで戻るときに使いやすい
 }
 
 /* beep player w/Arduino tone(). you may modify for your lib|PF */
