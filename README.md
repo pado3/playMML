@@ -10,7 +10,7 @@ playMML.ino デコードし演奏するスケッチ<br />
 <p></p>
 ATtiny85用:<br />
 playMMLt_EEPROMw.ino EEPROMへの書き込みスケッチ<br />
-playMMLt.ino デコードし演奏するスケッチ<br />
+playMMLt.ino デコードし演奏するスケッチ(2020/11/04 演奏終了後にパワーダウンモードへ移行するようにしました。そのコミット時に330uAから0.4uAと書きましたが、880uAからの間違いでした)<br />
 <p></p>
 共通:<br />
 score_sample.txt 楽譜のサンプル（ボレロ、愛の挨拶、むすんでひらいて、チャルメラ、ピポ音）<br />
