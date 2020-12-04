@@ -22,3 +22,7 @@ MMLフォーマットの内容については、上記playEXのドキュメン�
 http://pado.tea-nifty.com/top/2020/11/post-462c6c.html
 <p></p>
 ご利用は自己責任でお願いします。<br />
+<p></p>
+2020/12/04追記<br />
+音量調整できるようにしてみました。ポイントは添付図を、背景等は次のブログをご参照下さい：<br />
+http://pado.tea-nifty.com/top/2020/12/post-f8ee04.html
