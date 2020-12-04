@@ -1,13 +1,14 @@
 #include <EEPROM.h>
+#include <avr/sleep.h>
 #define RAM     1     // 1: use RAM data, 0: use EEPROM data
 #define ILLUMI  1     // 1: Sound illumination ON
-#define ESIZE   1024  // EEPROM size in byte
-#define SP      A0    // Speaker on A0 as digital out
-#define G1      A1    // GND for V1 on A1 HiZ w/input, GND w/OUTPUT_LOW
-#define G2      A2    // GND for V2 on A2 HiZ w/input, GND w/OUTPUT_LOW
-#define LED     13    // builtin LED
-#define KILL    2     // Kill SW for intrruppt on D2
-#define INTN    0     // Kill SW intrruppt number (D2 = INT0)
+#define ESIZE   512   // EEPROM size in byte
+#define G2      3     // GND for V2 on 3=pin2 HiZ w/input, GND w/OUTPUT_LOW
+#define G1      4     // GND for V1 on 4=pin3 HiZ w/input, GND w/OUTPUT_LOW
+#define SP      0     // Speaker on 0=pin5, need AMP for volume control
+#define LED     1     // LED on 1=pin6
+#define KILL    2     // Kill SW on 2=pin7
+#define INTN    0     // Kill SW intruppt No.0=2=pin7
 
 unsigned int L=8, O=4, T=100, aT=100;   // playEX default value from docs
 unsigned int V=3, K=0, M=6, Ms=2, TR=0; // default unknown. TR:Transposition
@@ -19,22 +20,50 @@ int decMML(unsigned int);  // MML decoder
 void quit(void);  // terminate to play
 char sr(unsigned int);     // snd data reader with touuper
 void setint(boolean); // interrupt switch
+void powerdown(void); // enter power down mode
 void play(int, unsigned long, unsigned int);  // beep player
 
 // put score here
 char *s[]={
-  "::[playEX]", // むすんでひらいて by パドラッパ
+  "::[playEX]", // ルソーむすんでひらいて by パドラッパ
   "k1@t120l8m6o5",
   "v3",
   "e4edc4c4d4d4edcp",
-  "v2",
-  "g4gfe4e4dcdec4p4",
   "v1",
+  "g4gfe4e4dcdec4p4",
+  "v2",
   "e4efg4g4a4a4gfep",
   "v3",
   "e4efg4g4a4a4g2p",
   ":://"
+
 /*
+  "::[playEX]", // volume test
+  "k1@t60l1o5",
+  "v3a",
+  "v2a",
+  "v1a",
+  "v2a",
+  "v3a",
+  ":://"
+
+  "::[playEX]", // test data for noise
+  "k0@t70l16m'2o5",
+  "c2_c4_c8_c_c2_c4_c8_c_g2_g4_g8_g_g2_g4_g8g_",
+  ":://"
+
+  "::[playEX]", // ルソーむすんでひらいて by パドラッパ
+  "k1@t120l8m6o5",
+  "v3",
+  "e4edc4c4d4d4edcp",
+  "v1",
+  "g4gfe4e4dcdec4p4",
+  "v2",
+  "e4efg4g4a4a4gfep",
+  "v3",
+  "e4efg4g4a4a4g2p",
+  ":://"
+
   "::[playEX]", // Mozart, Tulkish March, ATtiny85メモリぎりぎり
   "k1@t110l16m'5m8o4",
   "v3",
@@ -52,39 +81,17 @@ char *s[]={
   "a4",
   ":://",
 
-  "::[playEX]",//ラヴェル・ボレロbyパドラッパ
-  "k1@t70l16m'2o5",
-  "c4_c8<b>cdc<ba >c8c<a>c4_c8<b>c <agefg2_ gfedefgag4_",
-  "g4_gabagfed edc8_c8_cde8'f8' d4g2_ g2_g8p8 ",
-  ">d4_d6_c<bab>c dc<b4_b>c<ba>c<baf_ f8f'f'f8'a8'>c<abg f8f'f'f8'a8'bgaf",
-  "d8dcd4d8d'd' d8'f8'afged8dc d4_d8dcd8ef g2_gfedc8p8p2",
-  ":://"
-
-  "::[playEX]",//エルガー・愛の挨拶byパドラッパ
+  "::[playEX]",//エルガー愛の挨拶byパドラッパ
   "k1@t90l8o5~c+~d+~f+~g+",
   "g4<b>gfede a4a4a4<b>p",
   "g4<b+>gfede f4f4f3f+",
   "g4<b>gfede >c4c4c4<",
   "bag4fe c4d4e2p2",
   ":://"
-
-  "::[playEX]", // むすんでひらいて by パドラッパ
-  "k1@t120l8m6o5",
-  "v3",
-  "e4edc4c4d4d4edcp",
-  "v2",
-  "g4gfe4e4dcdec4p4",
-  "v1",
-  "e4efg4g4a4a4gfep",
-  "v3",
-  "e4efg4g4a4a4g2p",
-  ":://"
-
   "::[playEX]", // チャルメラ by パドラッパ
   "k1@t100l8m5mo4",
   "cde2_dcpcdedcd2_p1",
   ":://"
-
   "::[playEX]",//pipo
   "@t150N94N82:://"
 */
@@ -92,50 +99,87 @@ char *s[]={
 // score end
 int r=0, R=sizeof(s)/sizeof(*s);  // row counter and max row
 
+/*
+char *s[]={
+  "::[playEX]", // むすんでひらいて by パドラッパ
+  "k1@t120l8m6o5",
+  ":w むすんで ひらいて てをうって むすんで",
+  "e4edc4c4d4d4edcpg4gfe4e4dcdec4p4",
+  ":w またひらいて てをうって そのてを○○に",
+  "e4efg4g4a4a4gfepe4efg4g4a4a4g2p",
+  ":://"
+};
+
+char *s[]={
+  "::[playEX]", // チャルメラ by パドラッパ
+  "k1@t100l8m5mo4",
+  "cde2_dcpcdedcd2_p1",
+  ":://"
+};  // はらへ
+
+char *s[]={
+  "::[playEX]",//エルガー愛の挨拶byパドラッパ
+  "k1@t90l8o5~c+~d+~f+~g+",
+  "g4<b>gfede a4a4a4<b>p",
+  "g4+<b>gfede f4f4f3f+",
+  "g4<b>gfede >c4c4c4<",
+  "bag4fe c4d4e2p2",
+  ":://"
+};
+
+char *s[]={
+  "::[playEX]",//pipo
+  "@t150N94N82:://"
+};
+*/
+
 void setup()
 {
   // serial setup and initial message
-  Serial.begin(115200);
+  // Serial.begin(115200);
   delay(200);
-  Serial.println();
-  Serial.println(F("START " __FILE__ " from " __DATE__ " " __TIME__));
+  // Serial.println();
+  // Serial.println(F("START " __FILE__ " from " __DATE__ " " __TIME__));
   // set pinMode
   pinMode(SP,   OUTPUT);
+  pinMode(G1,   INPUT); // Hi-Z
+  pinMode(G2,   INPUT); // Hi-Z
   pinMode(LED,  OUTPUT);
   pinMode(KILL, INPUT_PULLUP);
   Start = 0;  // Start address, EEPROMに余裕があれば選択できるようにするかも
   Next = Start;
   // show all data
   if (RAM == 1) {
-    Serial.println(F("use RAM data"));
-    Serial.print(F("total number of rows:"));
-    Serial.println(R);
+    // Serial.println(F("use RAM data"));
+    // Serial.print(F("total number of rows:"));
+    // Serial.println(R);
   } else {
-    Serial.println(F("use EEPROM data"));
+    // Serial.println(F("use EEPROM data"));
     unsigned int i=Start;
     char c;
     while (i < ESIZE) {
       c = sr(i);
-      Serial.print(c);
+      // Serial.print(c);
       i++;
       if (c == 0x00) {
-        Serial.print("[NULL]");
+        // Serial.print("[NULL]");
         i = ESIZE;
       }
       if (i%100 == 0) {
-        Serial.println();
+        // Serial.println();
       }
     }
   }
-  Serial.println();
   // Serial.println();
   // MML decoder
   while (Q == false and r < R and sr(Next) != 0x00) {
     Next = decMML(Next);
-    Serial.print(F("next number of char:"));
-    Serial.println(Next);
+    // Serial.print(F("next number of char:"));
+    // Serial.println(Next);
   }
-  Serial.println(F(" ===== EOF ===== "));
+  // Serial.println(F(" ===== EOF ===== "));
+  // パワーダウンモード移行、ATtiny85はbootloader書き込み(ヒューズビット)でBOD Disableにしておく
+  powerdown();
 }
 
 void loop()
@@ -471,7 +515,7 @@ int decMML(unsigned int i) {  // MML(Music Macro Language) decoder
         // Serial.print(F(" Set @T to "));
         // Serial.print(aT);
         break;
-      /* 音量指定、Arduinoのtoneでは中間値無効=>有効化 */
+      /* 音量指定、Arduinoのtoneでは中間値無効=>テスト中 */
       case 'V':
         i++;
         if ( (0x30 <= (nc = sr(i)) and nc <= 0x33) ) { // 0 to 3
@@ -481,9 +525,9 @@ int decMML(unsigned int i) {  // MML(Music Macro Language) decoder
             digitalWrite(G1, LOW);  // GND
             pinMode(G2, INPUT);     // High-Z
           } else if (V == 2) {
-            pinMode(G1, INPUT);     // High-Z
             pinMode(G2, OUTPUT);    // Low-Z
             digitalWrite(G2, LOW);  // GND
+            pinMode(G1, INPUT);     // High-Z
           } else {  // V==0 or 3, set default
             pinMode(G1, INPUT);     // High-Z
             pinMode(G2, INPUT);     // High-Z
@@ -681,6 +725,16 @@ void setint(boolean sw) {
   } else {
     detachInterrupt(INTN); // Key intrrupt OFF
   }
+}
+
+/* power down mode w/Arduino. You may modify for your lib|PF */
+void powerdown(void) {  // ATtiny85はbootloader書き込み(ヒューズビット)でBOD Disableにしておく
+  // ACSR  = 0x00; // AD比較器停止0x80（使うときは0x00）関係無かった
+  // PRR = 0x00; // 電力削減レジスタまとめてゼロ（初期値通り） 関係無かった
+  // GIMSK = 0x00; // 割り込み不許可0x00, 許可0x60 関係無かった
+  ADCSRA = 0x00; // ADC停止、使うときは0x80（たぶんpinModeで設定） これをしないと330uA
+  set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+  sleep_mode(); // sleep_(enable + cpu + disable), 割り込みで戻るときに使いやすい
 }
 
 /* beep player w/Arduino tone(). you may modify for your lib|PF */
