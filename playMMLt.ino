@@ -1,11 +1,12 @@
 #include <EEPROM.h>
 #include <avr/sleep.h>
-#define RAM     0     // 1: use RAM data, 0: use EEPROM data
+#define RAM     1     // 1: use RAM data, 0: use EEPROM data
 #define ILLUMI  1     // 1: Sound illumination ON
 #define ESIZE   512   // EEPROM size in byte
-#define LED     3     // LED on 3=pin2
-//#define CAL     4     // Calibration volume on 4=pin3
-#define SP      0     // Piezo SPEAKER on 0=pin5
+#define G2      3     // GND for V2 on 3=pin2 HiZ w/input, GND w/OUTPUT_LOW
+#define G1      4     // GND for V1 on 4=pin3 HiZ w/input, GND w/OUTPUT_LOW
+#define SP      0     // Speaker on 0=pin5, need AMP for volume control
+#define LED     1     // LED on 1=pin6
 #define KILL    2     // Kill SW on 2=pin7
 #define INTN    0     // Kill SW intruppt No.0=2=pin7
 
@@ -24,11 +25,62 @@ void play(int, unsigned long, unsigned int);  // beep player
 
 // put score here
 char *s[]={
-  "::[playEX]", // むすんでひらいて by パドラッパ
+  "::[playEX]", // ルソーむすんでひらいて by パドラッパ
   "k1@t120l8m6o5",
-  "e4edc4c4d4d4edcpg4gfe4e4dcdec4p4",
-  "e4efg4g4a4a4gfepe4efg4g4a4a4g2p",
+  "v3",
+  "e4edc4c4d4d4edcp",
+  "v1",
+  "g4gfe4e4dcdec4p4",
+  "v2",
+  "e4efg4g4a4a4gfep",
+  "v3",
+  "e4efg4g4a4a4g2p",
   ":://"
+
+/*
+  "::[playEX]", // volume test
+  "k1@t60l1o5",
+  "v3a",
+  "v2a",
+  "v1a",
+  "v2a",
+  "v3a",
+  ":://"
+
+  "::[playEX]", // test data for noise
+  "k0@t70l16m'2o5",
+  "c2_c4_c8_c_c2_c4_c8_c_g2_g4_g8_g_g2_g4_g8g_",
+  ":://"
+
+  "::[playEX]", // ルソーむすんでひらいて by パドラッパ
+  "k1@t120l8m6o5",
+  "v3",
+  "e4edc4c4d4d4edcp",
+  "v1",
+  "g4gfe4e4dcdec4p4",
+  "v2",
+  "e4efg4g4a4a4gfep",
+  "v3",
+  "e4efg4g4a4a4g2p",
+  ":://"
+
+  "::[playEX]", // Mozart, Tulkish March, ATtiny85メモリぎりぎり
+  "k1@t110l16m'5m8o4",
+  "v3",
+  "bag+a >c8p8dc<b>c e8p8fed+e bag+abag+a >c4<a8'>c8'",
+  "<g32a32b32p32a8'g8'a8' g32a32b32p32a8'g8'a8' g32a32b32p32a8'g8'f+8'",
+  "e4",
+  "v2",
+  "<bag+a >c8p8dc<b>c e8p8fed+e bag+abag+a >c4<a8'>c8'",
+  "<g32a32b32p32a8'g8'a8' g32a32b32p32a8'g8'a8' g32a32b32p32a8'g8'f+8'",
+  "e4",
+  "v3e8'f8' g8'g8'agfe d8p8v1e8'f8' g8'g8'agfe d8p8v2c8'd8'",
+  "e8'e8'fedc <b8p8v1>c8'd8' e8'e8'fedc <b8p8v3bag+a >c8p8dc<b>c",
+  "e8p8fed+e bag+abag+a >c4v2<a8'b8'",
+  ">c8'<b8'a8'g+8' a8'e8'f8'd8' c4<b>c<ba32b32",
+  "a4",
+  ":://",
+
   "::[playEX]",//エルガー愛の挨拶byパドラッパ
   "k1@t90l8o5~c+~d+~f+~g+",
   "g4<b>gfede a4a4a4<b>p",
@@ -42,6 +94,7 @@ char *s[]={
   ":://"
   "::[playEX]",//pipo
   "@t150N94N82:://"
+*/
 };
 // score end
 int r=0, R=sizeof(s)/sizeof(*s);  // row counter and max row
@@ -89,6 +142,8 @@ void setup()
   // Serial.println(F("START " __FILE__ " from " __DATE__ " " __TIME__));
   // set pinMode
   pinMode(SP,   OUTPUT);
+  pinMode(G1,   INPUT); // Hi-Z
+  pinMode(G2,   INPUT); // Hi-Z
   pinMode(LED,  OUTPUT);
   pinMode(KILL, INPUT_PULLUP);
   Start = 0;  // Start address, EEPROMに余裕があれば選択できるようにするかも
@@ -460,11 +515,23 @@ int decMML(unsigned int i) {  // MML(Music Macro Language) decoder
         // Serial.print(F(" Set @T to "));
         // Serial.print(aT);
         break;
-      /* 音量指定、Arduinoのtoneでは中間値無効 */
+      /* 音量指定、Arduinoのtoneでは中間値無効=>テスト中 */
       case 'V':
         i++;
         if ( (0x30 <= (nc = sr(i)) and nc <= 0x33) ) { // 0 to 3
           V = (unsigned int)(nc - 0x30);
+          if (V == 1) {
+            pinMode(G1, OUTPUT);    // Low-Z
+            digitalWrite(G1, LOW);  // GND
+            pinMode(G2, INPUT);     // High-Z
+          } else if (V == 2) {
+            pinMode(G2, OUTPUT);    // Low-Z
+            digitalWrite(G2, LOW);  // GND
+            pinMode(G1, INPUT);     // High-Z
+          } else {  // V==0 or 3, set default
+            pinMode(G1, INPUT);     // High-Z
+            pinMode(G2, INPUT);     // High-Z
+          }
           i++;
         } else {
           V = 3;
